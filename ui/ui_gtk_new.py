@@ -37,6 +37,8 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk as gdk
 from gi.repository import GdkPixbuf
 
+from gtk3_utils.dialog import MyDialog
+
 log = logging.getLogger('root')
 
 #use_psyco_file = join(srcDir, 'use_psyco')
@@ -214,7 +216,7 @@ class BrowseButton(gtk.Button):
             self.setFilePathFunc(fcd.get_filename())
         fcd.destroy()
 
-class UI(gtk.Dialog, UIBase):
+class UI(gtk.Dialog, MyDialog, UIBase):
     def write(self, tag):## FIXME
         pass
     def __init__(self, **options):
@@ -306,6 +308,8 @@ class UI(gtk.Dialog, UIBase):
         pack(hbox, self.convertButton, 1, 1, 10)
         pack(vbox, hbox, 0, 0, 15)
         ##################### Tab 1 - Reverse #############################
+        self.reverseStatus = ''
+        ####
         sizeGroup = gtk.SizeGroup(mode=gtk.SizeGroupMode.HORIZONTAL)
         ####
         vbox = gtk.VBox()
@@ -313,7 +317,83 @@ class UI(gtk.Dialog, UIBase):
         vbox.icon = '' ## '*.png'
         self.prefPages.append(vbox)
         ######
-
+        hbox = gtk.HBox(spacing=3)
+        hbox.label = gtk.Label(label=_('Input Format')+':')
+        pack(hbox, hbox.label)
+        sizeGroup.add_widget(hbox.label) 
+        hbox.label.set_property('xalign', 0)
+        self.reverseInputFormatCombo = InputFormatComboBox()
+        pack(hbox, self.reverseInputFormatCombo)
+        pack(vbox, hbox)
+        ###
+        hbox = gtk.HBox(spacing=3)
+        hbox.label = gtk.Label(label=_('Input File')+':')
+        pack(hbox, hbox.label)
+        sizeGroup.add_widget(hbox.label) 
+        hbox.label.set_property('xalign', 0)
+        self.reverseInputEntry = gtk.Entry()
+        pack(hbox, self.reverseInputEntry, 1, 1)
+        button = BrowseButton(
+            self.reverseInputEntry.set_text,
+            label='Browse',
+            actionSave=False,
+            title='Select Input File',
+        )
+        pack(hbox, button)
+        pack(vbox, hbox)
+        ##
+        self.reverseInputEntry.connect('changed', self.convertInputEntryChanged)
+        #####
+        vbox.sep1 = gtk.Label(label='')
+        vbox.sep1.show()
+        pack(vbox, vbox.sep1)
+        #####
+        hbox = gtk.HBox(spacing=3)
+        hbox.label = gtk.Label(label=_('Output Tabfile')+':')
+        pack(hbox, hbox.label)
+        sizeGroup.add_widget(hbox.label)
+        hbox.label.set_property('xalign', 0)
+        self.reverseOutputEntry = gtk.Entry()
+        pack(hbox, self.reverseOutputEntry, 1, 1)
+        button = BrowseButton(
+            self.reverseOutputEntry.set_text,
+            label='Browse',
+            actionSave=True,
+            title='Select Output File',
+        )
+        pack(hbox, button)
+        pack(vbox, hbox)
+        ##
+        self.reverseOutputEntry.connect('changed', self.reverseOutputEntryChanged)
+        #####
+        hbox = gtk.HBox(spacing=3)
+        label = gtk.Label(label='')
+        pack(hbox, label, 1, 1, 5)
+        ###
+        self.reverseStartButton = gtk.Button()
+        self.reverseStartButton.set_label('Start')
+        self.reverseStartButton.connect('clicked', self.reverseStartClicked)
+        pack(hbox, self.reverseStartButton, 1, 1, 2)
+        ###
+        self.reversePauseButton = gtk.Button()
+        self.reversePauseButton.set_label('Pause')
+        self.reversePauseButton.set_sensitive(False)
+        self.reversePauseButton.connect('clicked', self.reversePauseClicked)
+        pack(hbox, self.reversePauseButton, 1, 1, 2)
+        ###
+        self.reverseResumeButton = gtk.Button()
+        self.reverseResumeButton.set_label('Resume')
+        self.reverseResumeButton.set_sensitive(False)
+        self.reverseResumeButton.connect('clicked', self.reverseResumeClicked)
+        pack(hbox, self.reverseResumeButton, 1, 1, 2)
+        ###
+        self.reverseStopButton = gtk.Button()
+        self.reverseStopButton.set_label('Stop')
+        self.reverseStopButton.set_sensitive(False)
+        self.reverseStopButton.connect('clicked', self.reverseStopClicked)
+        pack(hbox, self.reverseStopButton, 1, 1, 2)
+        ###
+        pack(vbox, hbox, 0, 0, 5)
         #####
         ###################################################################
         notebook = gtk.Notebook()
@@ -493,10 +573,68 @@ class UI(gtk.Dialog, UIBase):
                 pass
             else:
                 self.convertOutputFormatCombo.setActive(outFormatNew)
-        
+    
+    def reverseLoad(self):
+        pass
+    
+    def reverseStartLoop(self):
+        pass
 
 
+    def reverseStart(self):
+        if not self.reverseLoad():
+            return
+        ###
+        self.reverseStatus = 'doing'
+        self.reverseStartLoop()
+        ###
+        self.reverseStartButton.set_sensitive(False)
+        self.reversePauseButton.set_sensitive(True)
+        self.reverseResumeButton.set_sensitive(False)
+        self.reverseStopButton.set_sensitive(True)
 
+    def reverseStartClicked(self, widget=None):
+        self.waitingDo(self.reverseStart)
+
+    def reversePause(self):
+        self.reverseStatus = 'pause'
+        ###
+        self.reverseStartButton.set_sensitive(False)
+        self.reversePauseButton.set_sensitive(False)
+        self.reverseResumeButton.set_sensitive(True)
+        self.reverseStopButton.set_sensitive(True)
+
+    def reversePauseClicked(self, widget=None):
+        self.waitingDo(self.reversePause)
+
+    def reverseResume(self):
+        self.reverseStatus = 'doing'
+        ###
+        self.reverseStartButton.set_sensitive(False)
+        self.reversePauseButton.set_sensitive(True)
+        self.reverseResumeButton.set_sensitive(False)
+        self.reverseStopButton.set_sensitive(True)
+
+    def reverseResumeClicked(self, widget=None):
+        self.waitingDo(self.reverseResume)
+
+    def reverseStop(self):
+        self.reverseStatus = 'stop'
+        ###
+        self.reverseStartButton.set_sensitive(True)
+        self.reversePauseButton.set_sensitive(False)
+        self.reverseResumeButton.set_sensitive(False)
+        self.reverseStopButton.set_sensitive(False)
+
+    def reverseStopClicked(self, widget=None):
+        self.waitingDo(self.reverseStop)
+
+
+    def reverseInputEntryChanged(self, widget=None):
+        pass
+    
+    def reverseOutputEntryChanged(self, widget=None):
+        pass
     
 
 
