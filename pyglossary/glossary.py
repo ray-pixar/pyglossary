@@ -973,7 +973,7 @@ class Glossary(object):
 
     def writeTabfile(self, filename='', **kwargs):
         self.writeTxt(
-            '\t'
+            '\t',
             '\n',
             filename=filename,
             rplList=(
@@ -988,7 +988,7 @@ class Glossary(object):
     def writeDict(self, filename='', writeInfo=False):
         # Used in '/usr/share/dict/' for some dictionarys such as 'ding'
         self.writeTxt(
-            ' :: '
+            ' :: ',
             '\n',
             filename,
             writeInfo,
